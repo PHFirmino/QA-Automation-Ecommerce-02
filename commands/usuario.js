@@ -3,21 +3,32 @@ import { expect } from "@playwright/test";
 // Importa a página de métodos
 import { MetodosPage } from "../pages/metodos-page";
 
+// Importa as rotas do fixture
+import { rotas } from "../fixture/rotas";
+
+// Importa o axios para requisições HTTP
+import axios from "axios";
+import qs from 'qs';
+
+
 export class Usuario{
 
     constructor(page){
 
         // Inicializa a página de métodos
         this. metodosPage = new MetodosPage(page);
-        
+
+        // Atribui as rotas
+        this.rotas = rotas;
+
         // Atribui a página atual
         this.page = page
     }
 
     // Método para preencher a primeira parte do login
-    async preencherPrimeiraParteDoLogin(usuario){
+    async preencherPrimeiraParteDoRegistro(usuario){
 
-        // Verifica se a página de login foi carregada
+        // Verifica se a página de registro foi carregada
         await expect(this.page.getByText('New User Signup!')).toBeVisible();
 
         // Preenche os campos de nome e email
@@ -28,8 +39,22 @@ export class Usuario{
         await this.metodosPage.clicarBotao('button', 'data-qa', 'signup-button');
     }
 
+    // Método para preencher a primeira parte do login
+    async preencherPrimeiraParteDoLogin(usuario){
+
+        // Verifica se a página de login foi carregada
+        await expect(this.page.getByText('Login to your account')).toBeVisible();
+
+        // Preenche os campos de nome e email
+        await this.metodosPage.preencherCampo('input', 'data-qa', 'login-email', usuario.email);
+        await this.metodosPage.preencherCampo('input', 'data-qa', 'login-password', usuario.senha);
+
+        // Clica no botão de cadastro
+        await this.metodosPage.clicarBotao('button', 'data-qa', 'login-button');
+    }
+
     // Método para preencher a segunda parte do login
-    async preencherSegundaParteDoLogin(usuario){
+    async preencherSegundaParteDoRegistro(usuario){
 
         // Verifica se a página de informações da conta foi carregada
         await expect(this.page.getByText('Enter Account Information')).toBeVisible();
@@ -83,5 +108,46 @@ export class Usuario{
 
         // Clica no botão de continuar
         await this.metodosPage.clicarBotao('a', 'data-qa', 'continue-button');
+    }
+
+    async criarUsuarioAPI(usuario) {
+        await axios({
+            method: 'post',
+            url: this.rotas.apiCriarUsuario.url,
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            data: qs.stringify({
+                name: usuario.nome,
+                email: usuario.email,
+                password: usuario.senha,
+                title: usuario.sexo,
+                birth_date: usuario.nascimento.dia,
+                birth_month: usuario.nascimento.mes,
+                birth_year: usuario.nascimento.ano,
+                firstname: usuario.primeiroNome,
+                lastname: usuario.ultimoNome,
+                company: usuario.empresa,
+                address1: usuario.enderecoUm,
+                address2: usuario.enderecoDois,
+                country: usuario.pais,
+                zipcode: usuario.cep,
+                state: usuario.estado,
+                city: usuario.cidade,
+                mobile_number: usuario.telefone
+            })
+        })
+        .then(async (response) => {
+            expect(await response.data).toEqual({
+                responseCode: 201,
+                message: 'User created!'
+            });
+        })
+    }
+
+    async logOutUsuario(){
+
+        // Clica no menu de excluir conta
+        await this.metodosPage.clicarNoMenu(3);
     }
 }
